@@ -27,19 +27,22 @@ This package installs the insights-client Ansibile role.
 Make sure that "/usr/share/ansible/roles" is on your Ansible role_path.
 
 %prep
+
 %setup -qc
+
 %build
+
 %install
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/ansible/roles
+mkdir -p %{buildroot}%{_datadir}/ansible/roles
 
-cp -pR %{repo_name}-%{role_version} $RPM_BUILD_ROOT%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}
+cp -pR %{repo_name}-%{role_version} %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}
 
-mkdir -p $RPM_BUILD_ROOT%{_pkgdocdir}/
+mkdir -p %{buildroot}%{_pkgdocdir}/
 
-cp -p $RPM_BUILD_ROOT%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/README.md \
-      $RPM_BUILD_ROOT%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/LICENSE \
-      $RPM_BUILD_ROOT%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/examples/example-insights-client-playbook.yml \
-    $RPM_BUILD_ROOT%{_pkgdocdir}/
+cp -p %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/README.md \
+      %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/LICENSE \
+      %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/examples/example-insights-client-playbook.yml \
+    %{buildroot}%{_pkgdocdir}/
 
 %files
 %{_datadir}/ansible/roles/%{role_orgname}.%{role_name}
