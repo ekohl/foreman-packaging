@@ -283,6 +283,7 @@ plugins_packages:
     releasers:
     - koji-foreman-plugins
   hosts:
+    ansiblerole-insights-client: {}
     rubygem-angular-rails-templates: {}
     rubygem-azure: {}
     rubygem-azure-core: {}

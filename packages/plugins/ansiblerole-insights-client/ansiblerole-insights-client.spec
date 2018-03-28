@@ -34,25 +34,13 @@ Make sure that "/usr/share/ansible/roles" is on your Ansible role_path.
 
 %install
 mkdir -p %{buildroot}%{_datadir}/ansible/roles
-
 cp -pR %{repo_name}-%{role_version} %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}
-
-mkdir -p %{buildroot}%{_pkgdocdir}/
-
-cp -p %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/README.md \
-      %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/LICENSE \
-      %{buildroot}%{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/examples/example-insights-client-playbook.yml \
-    %{buildroot}%{_pkgdocdir}/
 
 %files
 %{_datadir}/ansible/roles/%{role_orgname}.%{role_name}
-
-%doc %{_pkgdocdir}/example-*-playbook.yml
-%doc %{_pkgdocdir}/README.md
-%doc %{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/README.md
-
-%license %{_pkgdocdir}/LICENSE
-%license %{_datadir}/ansible/roles/%{role_orgname}.%{role_name}/LICENSE
+%doc %{repo_name}-%{role_version}/examples/*.yml
+%doc %{repo_name}-%{role_version}/README.md
+%license %{repo_name}-%{role_version}/LICENSE
 
 %changelog
 * Thu Mar 15 2018 Gavin Romig-Koch <gavin@redhat.com> - 1.5-1
