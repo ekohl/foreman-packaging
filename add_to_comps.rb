@@ -37,15 +37,17 @@ def get_packagereqs(packagelist)
   relevant
 end
 
-def remove_nonscl_comment(packagelist)
-  nonscl_comment = packagelist.children.first
-  nonscl_comment.unlink
-  nonscl_comment
-end
-
 def prepend_packagereqs(packagelist, packagereqs)
-  packagereqs.each do |packagereq|
-    packagelist.children.before(packagereq)
+  if packagelist.children.empty?
+    # If empty, we can add them alphabetically
+    packagereqs.sort { |x,y| x.text <=> y.text }.each do |packagereq|
+      packagelist << packagereq
+    end
+  else
+    # Otherwise prepend them in reverse order
+    packagereqs.sort { |x,y| y.text <=> x.text }.each do |packagereq|
+      packagelist.prepend_child(packagereq)
+    end
   end
 end
 
@@ -58,24 +60,36 @@ end
 comps = Nokogiri::XML(File.open(ARGV[0])) { |config| config.noblanks }
 exit(1) unless find_packagereq(comps, ARGV[1]) == []
 packagelist = comps.xpath("//packagelist").first
-new_packagereq = Nokogiri::XML(
-  "<packagereq type='default'>#{ARGV[1]}</packagereq>"
-).children.first
+
+new_packagereq = Nokogiri::XML::Node.new 'packagereq', comps
+new_packagereq['type'] = 'default'
+new_packagereq.content = ARGV[1]
+
 if ARGV[2] == 'nonscl'
+  # Strip out SCL packages
   scl_packagereqs = get_packagereqs(packagelist)
-  scl_packagereqs.sort! { |x,y| y.text <=> x.text }
-  nonscl_comment = remove_nonscl_comment(packagelist)
-  nonscl_packagereqs = get_packagereqs(packagelist)
-  # At this point, only -doc packages remain
-  nonscl_packagereqs << new_packagereq
-  nonscl_packagereqs.sort! { |x,y| y.text <=> x.text }
-  prepend_packagereqs(packagelist, nonscl_packagereqs)
-  packagelist.children.before(nonscl_comment)
+
+  # Strip out non-SCL packages
+  nonscl_comment = packagelist.children.shift
+  if nonscl_comment
+    nonscl_comment.unlink
+    nonscl_packagereqs = get_packagereqs(packagelist)
+    # At this point, only -doc packages remain
+    nonscl_packagereqs << new_packagereq
+    # Readd non-SCL packages
+    prepend_packagereqs(packagelist, nonscl_packagereqs)
+    packagelist.children.before(nonscl_comment)
+  else
+    # There was no non-SCL section
+    # At this point, only -doc packages remain
+    scl_packagereqs << new_packagereq
+  end
+
+  # Readd SCL-packages
   prepend_packagereqs(packagelist, scl_packagereqs)
 else
   packagereqs = get_packagereqs(packagelist)
   packagereqs << new_packagereq
-  packagereqs.sort! { |x,y| y.text <=> x.text }
   prepend_packagereqs(packagelist, packagereqs)
 end
 
