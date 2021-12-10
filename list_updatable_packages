@@ -1,9 +1,76 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-DIRECTORIES=( $(grep --files-with-matches '^# template: foreman_plugin' packages/*/*/*.spec | xargs --max-args=1 dirname) )
+from pathlib import Path
+from typing import Generator, Optional
+import os
+import json
 
-if [[ -n $GITHUB_ACTION ]] ; then
-	data=$(printf ',"%s"' "${DIRECTORIES[@]}")
-	echo "::set-output name=directories::[${data:1}]"
-fi
-echo ${DIRECTORIES[@]}
+SUPPORTED_TEMPLATES = ('foreman_plugin',)
+
+
+class Spec:
+    def __init__(self, path: Path):
+        self.path = path
+        spec = path.read_text()
+        self.lines = spec.splitlines()
+        self._globals = None
+
+    @property
+    def directory(self) -> str:
+        return self.path.parent.as_posix()
+
+    @property
+    def template(self) -> Optional[str]:
+        for line in self.lines:
+            if line.startswith('# template:'):
+                _, _, template = line.split(None, 3)
+                return template
+
+        return None
+
+    @property
+    def globals(self) -> dict[str, str]:
+        """
+        Perform very naive spec parsing to extract the globals
+        """
+        if self._globals is None:
+            self._globals = {}
+            for line in self.lines:
+                if line.startswith('%global'):
+                    definition, name, value = line.split(None, 3)
+                    if definition == '%global':
+                        self._globals[name] = value
+
+        return self._globals
+
+    @property
+    def is_nightly(self) -> bool:
+        return 'prereleasesource' in self.globals
+
+    @property
+    def gem_name(self) -> str:
+        return self.globals.get('gem_name')
+
+
+def find_specs() -> Generator[Spec, None, None]:
+    for path in Path('packages').glob('*/*/*.spec'):
+        spec = Spec(path)
+        if spec.template in SUPPORTED_TEMPLATES and not spec.is_nightly:
+            yield spec
+
+
+def main() -> None:
+    specs = list(find_specs())
+
+    if 'GITHUB_ACTION' in os.environ:
+        directories = [spec.directory for spec in specs]
+        print(f'::set-output name=directories::{json.dumps(directories)}')
+
+        matrix = [{'gem_name': spec.gem_name, 'directory': spec.directory} for spec in specs]
+        print(f'::set-output name=matrix::{json.dumps(matrix)}')
+    for spec in specs:
+        print(spec.directory)
+
+
+if __name__ == '__main__':
+    main()
