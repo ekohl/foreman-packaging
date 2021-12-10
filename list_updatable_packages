@@ -1,0 +1,9 @@
+#!/bin/bash
+
+DIRECTORIES=( $(grep --files-with-matches '^# template: foreman_plugin' packages/*/*/*.spec | xargs --max-args=1 dirname) )
+
+if [[ -n $GITHUB_ACTION ]] ; then
+	data=$(printf ',"%s"' "${DIRECTORIES[@]}")
+	echo "::set-output name=directories::[${data:1}]"
+fi
+echo ${DIRECTORIES[@]}
