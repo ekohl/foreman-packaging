@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Mapping, Generator, Optional
 import os
 import json
 
@@ -29,7 +29,7 @@ class Spec:
         return None
 
     @property
-    def globals(self) -> dict[str, str]:
+    def globals(self) -> Mapping[str, str]:
         """
         Perform very naive spec parsing to extract the globals
         """
