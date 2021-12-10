@@ -55,6 +55,15 @@ else
 	NEW_VERSION=$2
 fi
 
+if [[ -n $GITHUB_ACTION ]] ; then
+	if [[ -n $GEM_NAME ]] ; then
+		echo "::set-output name=gem_name::$GEM_NAME"
+	fi
+	echo "::set-output name=package_name::$PACKAGE_NAME"
+	echo "::set-output name=current_version::$CURRENT_VERSION"
+	echo "::set-output name=new_version::$NEW_VERSION"
+fi
+
 if [[ $CURRENT_VERSION != $NEW_VERSION ]] ; then
 	ensure_program spectool rpmdevtools
 
