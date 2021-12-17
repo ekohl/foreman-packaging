@@ -1,3 +1,9 @@
+ruby-foreman-rescue (3.0.0-1) stable; urgency=low
+
+  * 3.0.0 released
+
+ -- ekohl <ekohl@users.noreply.github.com>  Fri, 17 Dec 2021 16:56:13 +0000
+
 ruby-foreman-rescue (2.0.1-2) stable; urgency=low
 
   * use foreman-plugin.postinst-lib from foreman
