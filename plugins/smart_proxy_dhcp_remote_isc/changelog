@@ -1,3 +1,9 @@
+ruby-smart-proxy-dhcp-remote-isc (0.0.5-1) stable; urgency=low
+
+  * 0.0.5 released
+
+ -- ekohl <ekohl@users.noreply.github.com>  Fri, 17 Dec 2021 15:31:47 +0000
+
 ruby-smart-proxy-dhcp-remote-isc (0.0.4-1) stable; urgency=low
 
   * 0.0.4 released
