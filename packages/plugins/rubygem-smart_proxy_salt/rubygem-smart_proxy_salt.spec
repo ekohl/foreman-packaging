@@ -34,8 +34,8 @@
 
 Summary: SaltStack support for Foreman Smart-Proxy
 Name: %{?scl_prefix}rubygem-%{gem_name}
-Version: 3.1.2
-Release: 8%{?foremandist}%{?dist}
+Version: 4.0.0
+Release: 1%{?foremandist}%{?dist}
 Group: Applications/System
 License: GPLv3
 URL: https://github.com/theforeman/smart_proxy_salt
@@ -65,6 +65,7 @@ Requires: foreman-proxy >= %{foreman_proxy_min_version}
 Requires: %{?scl_prefix_ruby}ruby(release)
 Requires: %{?scl_prefix_ruby}ruby
 Requires: %{?scl_prefix_ruby}ruby(rubygems)
+Requires: %{?scl_prefix}rubygem(smart_proxy_dynflow) >= 0.5.0
 BuildRequires: %{?scl_prefix_ruby}ruby(release)
 BuildRequires: %{?scl_prefix_ruby}ruby
 BuildRequires: %{?scl_prefix_ruby}rubygems-devel
@@ -189,6 +190,9 @@ EOF
 %doc %{gem_instdir}/README.md
 
 %changelog
+* Fri Dec 17 2021  4.0.0-1
+- Update to 4.0.0
+
 * Tue Apr 06 2021 Eric D. Helms <ericdhelms@gmail.com> - 3.1.2-8
 - Rebuild for Ruby 2.7
 
