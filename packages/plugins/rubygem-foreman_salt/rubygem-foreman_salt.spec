@@ -8,8 +8,8 @@
 
 Summary:    Foreman Plug-in for Salt
 Name:       %{?scl_prefix}rubygem-%{gem_name}
-Version:    13.2.4
-Release:    2%{?foremandist}%{?dist}
+Version:    14.1.0
+Release:    1%{?foremandist}%{?dist}
 Group:      Applications/Systems
 License:    GPLv3
 URL:        https://github.com/theforeman/foreman_salt
@@ -21,13 +21,13 @@ Requires: %{?scl_prefix_ruby}ruby(release)
 Requires: %{?scl_prefix_ruby}ruby
 Requires: %{?scl_prefix_ruby}ruby(rubygems)
 Requires: %{?scl_prefix}rubygem(deface) < 2.0
-Requires: %{?scl_prefix}rubygem(foreman-tasks) >= 0.8
 Requires: %{?scl_prefix}rubygem(foreman_remote_execution) >= 2.0.0
+Requires: %{?scl_prefix}rubygem(foreman-tasks) >= 0.8
 BuildRequires: foreman-assets >= %{foreman_min_version}
 BuildRequires: foreman-plugin >= %{foreman_min_version}
 BuildRequires: %{?scl_prefix}rubygem(deface) < 2.0
-BuildRequires: %{?scl_prefix}rubygem(foreman-tasks) >= 0.8
 BuildRequires: %{?scl_prefix}rubygem(foreman_remote_execution) >= 2.0.0
+BuildRequires: %{?scl_prefix}rubygem(foreman-tasks) >= 0.8
 BuildRequires: %{?scl_prefix_ruby}ruby(release)
 BuildRequires: %{?scl_prefix_ruby}ruby
 BuildRequires: %{?scl_prefix_ruby}rubygems-devel
@@ -104,6 +104,9 @@ cp -pa .%{gem_dir}/* \
 %{gem_instdir}/test
 
 %changelog
+* Fri Dec 17 2021  14.1.0-1
+- Update to 14.1.0
+
 * Tue Apr 06 2021 Eric D. Helms <ericdhelms@gmail.com> - 13.2.4-2
 - Rebuild plugins for Ruby 2.7
 
