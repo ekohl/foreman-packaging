@@ -1,3 +1,9 @@
+ruby-smart-proxy-discovery (1.0.5-1) stable; urgency=low
+
+  * 1.0.5 released
+
+ -- ekohl <ekohl@users.noreply.github.com>  Fri, 17 Dec 2021 15:31:50 +0000
+
 ruby-smart-proxy-discovery (1.0.3-1) stable; urgency=low
 
   * 1.0.3 released
