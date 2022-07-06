@@ -20,7 +20,9 @@ config.rules[:ignore] << '.ruby-version'
 config.rules[:ignore] << '.coveralls.yml'
 -%>
 %global gem_name <%= spec.name %>
+<% unless spec.extensions.empty? -%>
 %global gem_require_name %{gem_name}
+<% end -%>
 
 Name: rubygem-%{gem_name}
 Version: <%= spec.version %>
@@ -34,11 +36,17 @@ URL: <%= spec.homepage.gsub('http://', 'https://') %>
 Source0: <%= download_path %>%{gem_name}-%{version}.gem
 
 # start specfile generated dependencies
-<% for req in spec.required_ruby_version -%>
-Requires: ruby<%= " #{req}" unless req.empty? %>
-<% end -%>
+BuildRequires: ruby(release)
 <% for req in spec.required_rubygems_version -%>
-BuildRequires: %{?scl_prefix_ruby}rubygems-devel<%= " #{req}" unless req.empty? %>
+BuildRequires: <%= requirement 'rubygems-devel', req %>
+<% end -%>
+<% for req in spec.required_ruby_version -%>
+BuildRequires: <%= requirement "ruby#{'-devel' unless spec.extensions.empty?}", req %>
+<% end -%>
+<% unless spec.extensions.empty? -%>
+# Compiler is required for build of gem binary extension.
+# https://fedoraproject.org/wiki/Packaging:C_and_C++#BuildRequires_and_Requires
+BuildRequires: gcc
 <% end -%>
 <% if spec.extensions.empty? -%>
 BuildArch: noarch
@@ -89,7 +97,7 @@ rm -rf %{buildroot}%{gem_instdir}/<%= ext.split(File::SEPARATOR).first %>/
 <% end -%>
 
 <% end -%>
-<% unless spec.executables.nil? or spec.executables.empty? -%>
+<% unless spec.executables.empty? -%>
 mkdir -p %{buildroot}%{_bindir}
 cp -a .%{_bindir}/* \
         %{buildroot}%{_bindir}/
@@ -111,19 +119,18 @@ rm -rf gem_ext_test
 <% end -%>
 %files
 %dir %{gem_instdir}
-<% unless spec.executables.nil? or spec.executables.empty? -%>
 <% for f in spec.executables -%>
 %{_bindir}/<%= f %>
 <% end -%>
-<% end -%>
 <% unless spec.extensions.empty? -%>
-%exclude %{gem_instdir}/ext
 %{gem_extdir_mri}
 <% end -%>
-<%= main_file_entries(spec) %>
+<%= main_files.reject do |item|
+  spec.extensions.detect { |extension| item =~ /^#{extension.split(File::SEPARATOR).first}$/}
+end.to_rpm %>
 <% unless doc_subpackage -%>
 %doc %{gem_docdir}
-<%= doc_file_entries(spec) %>
+<%= doc_files.to_rpm %>
 <% end -%>
 %exclude %{gem_cache}
 %{gem_spec}
@@ -131,7 +138,7 @@ rm -rf gem_ext_test
 <% if doc_subpackage -%>
 %files doc
 %doc %{gem_docdir}
-<%= doc_file_entries(spec) %>
+<%= doc_file.to_rpm %>
 <% end # if doc_subpackage -%>
 
 %changelog
