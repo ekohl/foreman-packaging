@@ -1,96 +1,120 @@
-# template: scl
-%{?scl:%scl_package rubygem-%{gem_name}}
-%{!?scl:%global pkg_name %{name}}
+%global	gem_name nokogiri
 
-%global gem_name nokogiri
-%global gem_require_name %{gem_name}
+Summary: An HTML, XML, SAX, and Reader parser
+Name: rubygem-%{gem_name}
+Version: 1.13.8
+Release: 1%{?dist}
 
-Name: %{?scl_prefix}rubygem-%{gem_name}
-Version: 1.13.6
-Release: 2%{?dist}
-Summary: Nokogiri (鋸) makes it easy and painless to work with XML and HTML from Ruby
-Group: Development/Languages
-License: MIT
-URL: https://nokogiri.org
-Source0: https://rubygems.org/gems/%{gem_name}-%{version}.gem
+# MIT: see LICENSE.md
+# ASL 2.0
+#  1.12.0 bundles forked and modified gumbo -
+#  see gumbo-parser/src/attribute.c and ext/nokogiri/gumbo.c
+#  also lib/nokogiri/html5 is licensed under ASL 2.0
+License:	MIT and ASL 2.0
+Provides:	bundled(gumbo-parser) = 0.10.1
 
-# On EL8 rubygem-racc is bundled into ruby-libs package and
-# auto-generated dependencies will break dependency resolution
-Autoreq: 0
+URL:		https://nokogiri.org
+Source0:	https://rubygems.org/gems/%{gem_name}-%{version}.gem
+# Shut down libxml2 version unmatching warning
+Patch0:	%{name}-1.11.0.rc4-shutdown-libxml2-warning.patch
 
 # start specfile generated dependencies
-Requires: %{?scl_prefix_ruby}ruby(release)
-Requires: %{?scl_prefix_ruby}ruby >= 2.6.0
-Requires: %{?scl_prefix_ruby}ruby(rubygems)
-Requires: %{?scl_prefix}rubygem(mini_portile2) >= 2.8.0
-Requires: %{?scl_prefix}rubygem(mini_portile2) < 2.9
-BuildRequires: %{?scl_prefix_ruby}ruby(release)
-BuildRequires: %{?scl_prefix_ruby}ruby-devel >= 2.6.0
-BuildRequires: %{?scl_prefix_ruby}rubygems-devel
-BuildRequires: %{?scl_prefix}rubygem(mini_portile2) >= 2.8.0
-BuildRequires: %{?scl_prefix}rubygem(mini_portile2) < 2.9
-Provides: %{?scl_prefix}rubygem(%{gem_name}) = %{version}
+Requires: ruby >= 2.6.0
+BuildRequires: ruby-devel >= 2.6.0
+BuildRequires: rubygems-devel
+# Compiler is required for build of gem binary extension.
+# https://fedoraproject.org/wiki/Packaging:C_and_C++#BuildRequires_and_Requires
+BuildRequires: gcc
 # end specfile generated dependencies
-BuildRequires: libxml2-devel
-BuildRequires: libxslt-devel
 
-%if 0%{?rhel} >= 8
-Requires: bundled(rubygem-racc) >= 1.4
-Requires: bundled(rubygem-racc) < 2
-BuildRequires: bundled(rubygem-racc) >= 1.4
-BuildRequires: bundled(rubygem-racc) < 2
-%else
-Requires: %{?scl_prefix}rubygem(racc) >= 1.4
-Requires: %{?scl_prefix}rubygem(racc) < 2
-BuildRequires: %{?scl_prefix}rubygem(racc) >= 1.4
-BuildRequires: %{?scl_prefix}rubygem(racc) < 2
-%endif
+BuildRequires:	libxml2-devel
+BuildRequires:	libxslt-devel
+
+# Prefer to consume racc as a default gem
+Requires: (bundled(rubygem-racc) >= 1.4 with bundled(rubygem-racc) < 2)
+Requires: ruby-default-gems
+BuildRequires: (bundled(rubygem-racc) >= 1.4 with bundled(rubygem-racc) < 2)
+BuildRequires: ruby-default-gems
 
 %description
-Nokogiri (鋸) makes it easy and painless to work with XML and HTML from Ruby.
-It provides a
-sensible, easy-to-understand API for reading, writing, modifying, and querying
-documents. It is
-fast and standards-compliant by relying on native parsers like libxml2 (C) and
-xerces (Java).
+Nokogiri parses and searches XML/HTML very quickly, and also has
+correctly implemented CSS3 selector support as well as XPath support.
 
+Nokogiri also features an Hpricot compatibility layer to help ease the change
+to using correct CSS and XPath.
 
 %package doc
-Summary: Documentation for %{pkg_name}
-Group: Documentation
-Requires: %{?scl_prefix}%{pkg_name} = %{version}-%{release}
-BuildArch: noarch
+Summary: Documentation for %{name}
+Requires: %{name} = %{version}-%{release}
 
-%description doc
-Documentation for %{pkg_name}.
+%description	doc
+This package contains documentation for %{name}.
 
 %prep
-%{?scl:scl enable %{scl} - << \EOF}
-gem unpack %{SOURCE0}
-%{?scl:EOF}
+%setup -q -n %{gem_name}-%{version}
 
-%setup -q -D -T -n  %{gem_name}-%{version}
+# Prefer to consume racc as a default gem
+%gemspec_remove_dep -g racc "~> 1.4"
 
-%{?scl:scl enable %{scl} - << \EOF}
-gem spec %{SOURCE0} -l --ruby > %{gem_name}.gemspec
-%{?scl:EOF}
+# patches
+%patch0 -p1
+
+# remove bundled external libraries
+sed -i \
+	-e 's|, "ports/archives/[^"][^"]*"||g' \
+	-e 's|, "ports/patches/[^"][^"]*"||g' \
+	../%{gem_name}-%{version}.gemspec
+# Actually not needed when using system libraries
+sed -i -e '\@mini_portile@d' ../%{gem_name}-%{version}.gemspec
+
+# Don't use mini_portile2, but build libgumbo.a first and
+# tell extconf.rb the path to the archive
+sed -i \
+	ext/nokogiri/extconf.rb \
+	-e "s@^\(def process_recipe.*\)\$@\1 ; return true@" \
+	-e "s@^\(append_cppflags\).*gumbo.*\$@\1(\"-I$(pwd)/gumbo-parser/src\")@" \
+	-e "\@libs.*gumbo@s@File\.join.*@\"$(pwd)/gumbo-parser/src/libgumbo.a\"@" \
+	-e "\@LIBPATH.*gumbo@s|^\(.*\)\$|# \1|" \
+	%{nil}
+
+# #line directive can confuse debuginfo, removing for now
+sed -i \
+	gumbo-parser/src/char_ref.c \
+	-e '\@^#line [0-9]@s|^\(.*\)$|// \1|'
+
+# Compile libgumbo.a with -fPIC
+sed -i \
+	gumbo-parser/src/Makefile \
+	-e 's|^\(CFLAGS.*=.*\)$|\1 -fPIC|'
 
 %build
-# Create the gem as gem install only works on a gem file
-%{?scl:scl enable %{scl} - << \EOF}
-gem build %{gem_name}.gemspec
-%{?scl:EOF}
+# Ummm...
+env LANG=C.UTF-8 gem build ../%{gem_name}-%{version}.gemspec
 
-# %%gem_install compiles any C extensions and installs the gem into ./%%gem_dir
-# by default, so that we can move it into the buildroot in %%install
-%{?scl:scl enable %{scl} - << \EOF}
+# 1.6.0 needs this
+export NOKOGIRI_USE_SYSTEM_LIBRARIES=yes
+
+%set_build_flags
+# First build libgumbo.a
+pushd gumbo-parser/src/
+make libgumbo.a
+popd
+
 %gem_install
-%{?scl:EOF}
+
+# Remove precompiled Java .jar file
+find .%{gem_instdir}/lib/ -name '*.jar' -delete
+# For now remove JRuby support
+rm -rf .%{gem_instdir}/ext/java
+
 
 %install
 mkdir -p %{buildroot}%{gem_dir}
-cp -a .%{gem_dir}/* \
-        %{buildroot}%{gem_dir}/
+cp -a ./%{gem_dir}/* \
+	%{buildroot}%{gem_dir}
+
+# Also first copy these, clean up later
+cp -a ./gumbo-parser  %{buildroot}%{gem_instdir}/
 
 mkdir -p %{buildroot}%{gem_extdir_mri}/%{gem_name}
 cp -a .%{gem_extdir_mri}/gem.build_complete %{buildroot}%{gem_extdir_mri}/
@@ -101,43 +125,67 @@ rm -rf %{buildroot}%{gem_instdir}/ext/
 
 mkdir -p %{buildroot}%{_bindir}
 cp -a .%{_bindir}/* \
-        %{buildroot}%{_bindir}/
+	%{buildroot}%{_bindir}/
 find %{buildroot}%{gem_instdir}/bin -type f | xargs chmod a+x
 
+# remove all shebang
+for f in $(find %{buildroot}%{gem_instdir} -name \*.rb)
+do
+	sed -i -e '/^#!/d' $f
+	chmod 0644 $f
+done
+
+# cleanups
+# Remove bundled gumbo parser
+pushd %{buildroot}%{gem_instdir}
+rm -rf \
+	Gemfile* \
+	dependencies.yml \
+	patches \
+	ports \
+	gumbo-parser/Makefile
+	%{nil}
+find gumbo-parser/src -type f | \
+	grep -v README.md | \
+	xargs rm -f
+
 %check
-%{?scl:scl enable %{scl} - << \EOF}
 # Ideally, this would be something like this:
-# GEM_PATH="%{buildroot}%{gem_dir}:$GEM_PATH" ruby -e "require '%{gem_require_name}'"
+# GEM_PATH="%{buildroot}%{gem_dir}:$GEM_PATH" ruby -e "require '%{gem_name}'"
 # But that fails to find native extensions on EL8, so we fake the structure that ruby expects
 mkdir gem_ext_test
 cp -a %{buildroot}%{gem_dir} gem_ext_test/
 mkdir -p gem_ext_test/gems/extensions/%{_arch}-%{_target_os}/$(ruby -r rbconfig -e 'print RbConfig::CONFIG["ruby_version"]')/
 cp -a %{buildroot}%{gem_extdir_mri} gem_ext_test/gems/extensions/%{_arch}-%{_target_os}/$(ruby -r rbconfig -e 'print RbConfig::CONFIG["ruby_version"]')/
-GEM_PATH="./gem_ext_test/gems:$GEM_PATH" ruby -e "require '%{gem_require_name}'"
+GEM_PATH="./gem_ext_test/gems:$GEM_PATH" ruby -e "require '%{gem_name}'"
 rm -rf gem_ext_test
-%{?scl:EOF}
 
 %files
 %dir %{gem_instdir}
-%{_bindir}/nokogiri
-%exclude %{gem_instdir}/ext
+%{_bindir}/%{gem_name}
 %{gem_extdir_mri}
 %license %{gem_instdir}/LICENSE-DEPENDENCIES.md
 %license %{gem_instdir}/LICENSE.md
 %{gem_instdir}/bin
-%{gem_instdir}/dependencies.yml
-%{gem_instdir}/gumbo-parser
 %{gem_libdir}
-%{gem_instdir}/patches
 %exclude %{gem_cache}
 %{gem_spec}
 
-%files doc
+%files	doc
+%defattr(-,root,root,-)
 %doc %{gem_docdir}
-%{gem_instdir}/Gemfile
 %doc %{gem_instdir}/README.md
+%dir %{gem_instdir}/gumbo-parser
+%doc %{gem_instdir}/gumbo-parser/CHANGES.md
+%doc %{gem_instdir}/gumbo-parser/THANKS
+%dir %{gem_instdir}/gumbo-parser/src
+%doc %{gem_instdir}/gumbo-parser/src/README.md
 
 %changelog
+* Wed Jul 27 2022 Ewoud Kohl van Wijngaarden <ewoud@kohlvanwijngaarden.nl> - 1.13.8-1
+- Update to 1.13.8
+- Base spec file on Fedora's version
+
 * Wed May 18 2022 Eric D. Helms <ericdhelms@gmail.com> - 1.13.6-2
 - Add back disable of Autoreq
 
