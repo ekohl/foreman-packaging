@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-from subprocess import check_output, STDOUT, CalledProcessError
-import os
-import yaml
-import glob
-import shutil
-import time
 import hashlib
+import os
+import shutil
 import sys
+import time
+from pathlib import Path
+from subprocess import STDOUT, CalledProcessError, check_output
+
+import yaml
 
 
-def execute(command):
+def execute(command: str | list[str]) -> str | bool:
     try:
         return check_output(command, universal_newlines=True, stderr=STDOUT)
     except CalledProcessError as error:
@@ -18,7 +19,8 @@ def execute(command):
         return False
 
 
-def move_rpms_from_copr_to_stage(collection, version, src_folder, dest_folder, source=False):
+def move_rpms_from_copr_to_stage(collection: str, version: str, src_folder: Path, dest_folder:
+                                 Path, source: bool=False) -> None:
     if source:
         print(f"Moving {collection} Source RPMs from Copr directory to stage repository")
     else:
@@ -27,26 +29,25 @@ def move_rpms_from_copr_to_stage(collection, version, src_folder, dest_folder, s
     if not os.path.exists(dest_folder):
         os.mkdir(dest_folder)
 
-    repo_folder = f"{src_folder}/el8-{collection}-{version}"
+    repo_folder = src_folder / f"el8-{collection}-{version}"
 
     if source:
-        files = glob.glob(repo_folder + f"/**/*.src.rpm")
+        files = repo_folder.glob("/**/*.src.rpm")
     else:
-        files = glob.glob(repo_folder + f"/**/*.rpm")
+        files = repo_folder.glob("/**/*.rpm")
 
     for file in files:
-        file_name = os.path.basename(file)
-        shutil.move(file, os.path.join(dest_folder, file_name))
+        file.rename(dest_folder / file.name)
 
     shutil.rmtree(src_folder)
 
-def modulemd_yaml(collection):
+def modulemd_yaml(collection: str) -> str:
     return f"modulemd/modulemd-{collection}-el8.yaml"
 
 
-def generate_modulemd_version(version):
+def generate_modulemd_version(version: str) -> int:
     if version == 'nightly':
-        modulemd_version_prefix = '9999'
+        modulemd_version_prefix = 9999
     else:
         major, minor = version.split('.')
         modulemd_version_prefix = int(major)*100 + int(minor)
@@ -56,23 +57,23 @@ def generate_modulemd_version(version):
     return int(modulemd_version_string)
 
 
-def generate_modulemd_context(collection, version):
+def generate_modulemd_context(collection: str, version: str) -> str:
     context_string = f"{collection}-{version}"
     digest = hashlib.sha256(context_string.encode()).hexdigest()
     return digest[:8]
 
 
-def create_modulemd(collection, version, stage_dir):
+def create_modulemd(collection: str, version: str, stage_dir: Path) -> None:
     print("Adding modulemd to stage repository")
     cmd = [
         'rpm',
         '--nosignature',
         '--query',
         '--package',
-        f"{stage_dir}/*rpm",
+        f"{stage_dir}/*.rpm",
         "--queryformat=%{name}-%{epochnum}:%{version}-%{release}.%{arch}\n"
     ]
-    output = execute(cmd)
+    output = check_output(cmd)
 
     with open(modulemd_yaml(collection), 'r') as file:
         modules = yaml.safe_load(file)
@@ -85,14 +86,14 @@ def create_modulemd(collection, version, stage_dir):
     with open(modules_yaml, 'w') as modules_file:
         yaml.dump(modules, modules_file, default_flow_style=False, explicit_start=True, explicit_end=True)
 
-    execute(['modifyrepo_c', '--mdtype=modules', modules_yaml, f"{stage_dir}/repodata"])
+    check_output(['modifyrepo_c', '--mdtype=modules', modules_yaml, f"{stage_dir}/repodata"])
 
 
-def create_repository(repo_dir):
+def create_repository(repo_dir: Path) -> None:
     check_output(['createrepo', repo_dir])
 
 
-def sync_copr_repository(collection, version, target_dir, source=False):
+def sync_copr_repository(collection: str, version: str, target_dir: Path, source: bool=False):
     if source:
         print(f"Syncing {collection} {version} Source RPM repository from Copr")
     else:
@@ -110,7 +111,7 @@ def sync_copr_repository(collection, version, target_dir, source=False):
     if execute(['reposync', '--version']):
         cmd.extend([
             '--download-path',
-            target_dir
+            target_dir.as_posix()
         ])
 
         if source:
@@ -126,7 +127,7 @@ def sync_copr_repository(collection, version, target_dir, source=False):
     else:
         cmd.extend([
             '--download_path',
-            target_dir
+            target_dir.as_posix()
         ])
 
         if source:
@@ -134,7 +135,7 @@ def sync_copr_repository(collection, version, target_dir, source=False):
                 '--source',
             ])
 
-    execute(cmd)
+    check_output(cmd)
 
 
 def main():
@@ -145,25 +146,20 @@ def main():
     except IndexError:
         raise SystemExit(f"Usage: {sys.argv[0]} collection version os")
 
-    base_dir = 'tmp'
-    rpm_sync_dir = f"{base_dir}/rpms"
-    srpm_sync_dir = f"{base_dir}/srpms"
+    base_dir = Path('tmp')
+    rpm_sync_dir = base_dir / "rpms"
+    rpm_sync_dir.mkdir(exist_ok=True)
 
-    stage_dir = f"{base_dir}/{collection}/{version}/{operating_system}/"
-    rpm_dir = f"{stage_dir}/x86_64"
-    srpm_dir = f"{stage_dir}/source"
+    srpm_sync_dir = base_dir / "srpms"
+    srpm_sync_dir.mkdir(exist_ok=True)
 
-    if not os.path.exists(rpm_sync_dir):
-        os.makedirs(rpm_sync_dir)
+    stage_dir = base_dir / collection / version / operating_system
 
-    if not os.path.exists(srpm_sync_dir):
-        os.makedirs(srpm_sync_dir)
+    rpm_dir = stage_dir / "x86_64"
+    rpm_dir.mkdir(exist_ok=True)
 
-    if not os.path.exists(rpm_dir):
-        os.makedirs(rpm_dir)
-
-    if not os.path.exists(srpm_dir):
-        os.makedirs(srpm_dir)
+    srpm_dir = stage_dir / "source"
+    srpm_dir.mkdir(exist_ok=True)
 
     sync_copr_repository(collection, version, rpm_sync_dir)
     sync_copr_repository(collection, version, srpm_sync_dir, source=True)
