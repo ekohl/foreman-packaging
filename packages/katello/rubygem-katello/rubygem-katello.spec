@@ -6,7 +6,7 @@
 %global prereleasesource pre.master
 %global prerelease %{?prereleasesource:.}%{?prereleasesource}
 %global mainver 5.1.0
-%global release 2
+%global release 3
 
 Name: rubygem-%{gem_name}
 Version: %{mainver}
@@ -24,22 +24,21 @@ Requires: (katello-selinux if selinux-policy-targeted)
 Requires: foreman >= %{foreman_min_version}
 BuildRequires: foreman-assets >= %{foreman_min_version}
 BuildRequires: foreman-plugin >= %{foreman_min_version}
-Requires: ruby >= 2.7
+Requires: ruby >= 3.0
 Requires: ruby < 4
-BuildRequires: ruby >= 2.7
+BuildRequires: ruby >= 3.0
 BuildRequires: ruby < 4
-BuildRequires: rubygems-devel > 1.3.1
+BuildRequires: rubygems-devel
 BuildRequires: rubygem(rails)
 BuildRequires: rubygem(json)
 BuildRequires: rubygem(oauth)
 BuildRequires: rubygem(rest-client)
 BuildRequires: rubygem(rabl)
-BuildRequires: rubygem(foreman-tasks) >= 5.0
+BuildRequires: rubygem(foreman-tasks) >= 12.0.0
 BuildRequires: rubygem(foreman_remote_execution) >= 7.1.0
-BuildRequires: rubygem(dynflow) >= 1.6.1
+BuildRequires: rubygem(dynflow) >= 2.0.0
 BuildRequires: rubygem(activerecord-import)
-BuildRequires: rubygem(scoped_search) >= 4.1.9
-BuildRequires: rubygem(gettext_i18n_rails)
+BuildRequires: (rubygem(scoped_search) >= 5.0 with rubygem(scoped_search) < 6.0)
 BuildRequires: rubygem(apipie-rails) >= 0.5.14
 BuildRequires: rubygem(fx) < 1.0
 BuildRequires: rubygem(pg)
@@ -56,7 +55,7 @@ BuildRequires: (rubygem(pulp_python_client) >= 3.36.2 with rubygem(pulp_python_c
 BuildRequires: (rubygem(pulp_ostree_client) >= 2.6.1 with rubygem(pulp_ostree_client) < 2.7.0)
 BuildRequires: (rubygem(deface) >= 1.0.2 with rubygem(deface) < 2.0.0)
 BuildRequires: (rubygem(angular-rails-templates) >= 1.1 with rubygem(angular-rails-templates) < 2)
-BuildRequires: (rubygem(jquery-ui-rails) >= 6.0 with rubygem(jquery-ui-rails) < 7.0)
+BuildRequires: (rubygem(jquery-ui-rails) >= 6.0 with rubygem(jquery-ui-rails) < 7)
 BuildArch: noarch
 Provides: foreman-plugin-%{plugin_name} = %{version}
 # end specfile generated dependencies
@@ -165,6 +164,9 @@ done
 %{foreman_plugin_log}
 
 %changelog
+* Tue Oct 20 2026 Ewoud Kohl van Wijngaarden <ewoud@kohlvanwijngaarden.nl> - 5.1.0-0.3.pre.master
+- Update Gem and NPM dependencies
+
 * Thu Sep 24 2026 Samir Jha <samirjha1525@gmail.com> - 5.1.0-0.2.pre.master
 - Bump Pulp binding requirements to 3.118 versions
 
